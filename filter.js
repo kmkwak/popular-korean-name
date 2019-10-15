@@ -2,7 +2,7 @@ var NAME_LIST_TEMPLATE =
     '<% _.each(nameList, function(name) { %>' +
     '<li>' +
         '<span style="color: dodgerblue;">곽<%= name.name %></span> : ' +
-        '<span style="color: darkgray;">[<%= name.choSung.join(",") %>], <%= name.ohang %>, [count: <%= name.count %>], [ranking: <%= name.ranking %>]</span>' +
+        '<span style="color: darkgray;">[<%= name.choSung.join(",") %>], <%= name.ohang %>, [count: <%= name.count %>], [ranking: <%= name.rank %>]</span>' +
     '</li>' +
     '<% }); %>';
 
