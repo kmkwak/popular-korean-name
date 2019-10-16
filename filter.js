@@ -1,8 +1,10 @@
 var NAME_LIST_TEMPLATE =
     '<% _.each(nameList, function(name) { %>' +
     '<li>' +
-        '<span style="color: dodgerblue;">곽<%= name.name %></span> : ' +
-        '<span style="color: darkgray;">[<%= name.choSung.join(",") %>], <%= name.ohang %>, [count: <%= name.count %>], [ranking: <%= name.rank %>]</span>' +
+        '<span style="color: dodgerblue;">곽<%= name.name %></span>' +
+        '<div style="color: darkgray;">count: <%= name.count %>, ranking: <%= name.rank %></div>' +
+        '<div style="color: darkgray;"><%= name.ohang %></div>' +
+        '<div style="color: darkgray;"><%= name.umYang %></div>' +
     '</li>' +
     '<% }); %>';
 
@@ -18,20 +20,86 @@ function requestNameList(page) {
         });
 }
 
+// 초성
 var cCho = [ 'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ' ];
+// 중성
 var cJung = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ"];
 
-var O_HANG = {
-    MOK: ['ㄱ', 'ㅋ'],
-    HWA: ['ㄴ', 'ㄷ', 'ㄹ', 'ㅌ'],
-    TO: ['ㅇ', 'ㅎ'],
-    KUM: ['ㅅ', 'ㅈ', 'ㅊ'],
-    SU: ['ㅁ', 'ㅂ', 'ㅍ']
-};
-
+// 모음 음양
 var UM_YANG = {
     UM: ["ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅜ", "ㅝ", "ㅞ", "ㅟ", "ㅠ", "ㅡ", "ㅢ", "ㅣ"],
     YANG: ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅗ", "ㅘ", "ㅙ", "ㅚ", "ㅛ"]
+};
+
+/**
+ *  목 : ㄱ, ㅋ
+ *  화 : ㄴ, ㄷ, ㄹ, ㅌ
+ *  토 : ㅇ, ㅎ
+ *  금 : ㅅ, ㅈ, ㅊ
+ *  수 : ㅁ, ㅂ, ㅍ
+ */
+var O_HANG_MATCH = {
+    'ㄱ': '목',
+    'ㄴ': '화',
+    'ㄷ': '화',
+    'ㄹ': '화',
+    'ㅁ': '수',
+    'ㅂ': '수',
+    'ㅅ': '금',
+    'ㅇ': '토',
+    'ㅈ': '금',
+    'ㅊ': '금',
+    'ㅋ': '목',
+    'ㅌ': '화',
+    'ㅍ': '수',
+    'ㅎ': '토'
+};
+
+/**
+ * 목오행 길흉 테이블
+ * 상비관계 : 1개
+ * 상생관계 : 8개
+ * 생극관계 : 8개
+ * 상극관계 : 8개
+ */
+var O_HANG_RELATION = {
+    '목': {
+        '목': {
+            '목': 'WORST',
+            '화': 'BEST',
+            '토': 'WORST',
+            '금': 'WORST',
+            '수': 'BEST'
+        },
+        '화': {
+            '목': 'BEST',
+            '화': 'BEST',
+            '토': 'BEST',
+            '금': 'BAD',
+            '수': 'GOOD'
+        },
+        '토': {
+            '목': 'WORST',
+            '화': 'GOOD',
+            '토': 'WORST',
+            '금': 'BAD',
+            '수': 'WORST'
+        },
+        '금': {
+            '목': 'WORST',
+            '화': 'WORST',
+            '토': 'BAD',
+            '금': 'WORST',
+            '수': 'GOOD'
+        },
+        '수': {
+            '목': 'BEST',
+            '화': 'GOOD',
+            '토': 'BAD',
+            '금': 'BEST',
+            '수': 'BEST'
+        }
+    }
 };
 
 function extractChoSungList(name) {
@@ -56,69 +124,11 @@ function extractJungSungList(name) {
     });
 }
 
-
-
-function ohangBestFilter(choSungList) {
+function getOhangRelationResult(choSungList) {
+    var first = 'ㄱ';
     var middle = choSungList[0];
     var last = choSungList[1];
-    // 목, 목, 화
-    if (_.contains(O_HANG.MOK, middle) && _.contains(O_HANG.HWA, last)) {
-        return '[BEST: 목-목-화]';
-    }
-    // 목, 목, 수
-    if (_.contains(O_HANG.MOK, middle) && _.contains(O_HANG.SU, last)) {
-        return '[BEST: 목-목-수]';
-    }
-    // 목, 화, 목
-    if (_.contains(O_HANG.HWA, middle) && _.contains(O_HANG.MOK, last)) {
-        return '[BEST: 목-화-목]';
-    }
-    // 목, 화, 화
-    if (_.contains(O_HANG.HWA, middle) && _.contains(O_HANG.HWA, last)) {
-        return '[BEST: 목-화-화]';
-    }
-    // 목, 화, 토
-    if (_.contains(O_HANG.HWA, middle) && _.contains(O_HANG.TO, last)) {
-        return '[BEST: 목-화-토]';
-    }
-    // 목, 수, 목
-    if (_.contains(O_HANG.SU, middle) && _.contains(O_HANG.MOK, last)) {
-        return '[BEST: 목-수-목]';
-    }
-    // 목, 수, 금
-    if (_.contains(O_HANG.SU, middle) && _.contains(O_HANG.KUM, last)) {
-        return '[BEST: 목-수-금]';
-    }
-    // 목, 수, 수
-    if (_.contains(O_HANG.SU, middle) && _.contains(O_HANG.SU, last)) {
-        return '[BEST: 목-수-수]';
-    }
-
-    return '';
-}
-
-function ohangGoodFilter(choSungList) {
-    var middle = choSungList[0];
-    var last = choSungList[1];
-
-    // 목, 화, 수
-    if (_.contains(O_HANG.HWA, middle) && _.contains(O_HANG.SU, last)) {
-        return '[GOOD: 목-화-수]';
-    }
-    // 목, 토, 화
-    if (_.contains(O_HANG.TO, middle) && _.contains(O_HANG.HWA, last)) {
-        return '[GOOD: 목-토-화]';
-    }
-    // 목, 금, 수
-    if (_.contains(O_HANG.KUM, middle) && _.contains(O_HANG.SU, last)) {
-        return '[GOOD: 목-금-수]';
-    }
-    // 목, 수, 화
-    if (_.contains(O_HANG.SU, middle) && _.contains(O_HANG.HWA, last)) {
-        return '[GOOD: 목-수-화]';
-    }
-
-    return '';
+    return O_HANG_RELATION[O_HANG_MATCH[first]][O_HANG_MATCH[middle]][O_HANG_MATCH[last]];
 }
 
 function umYangFilter(jungSungList) {
@@ -134,16 +144,11 @@ function filter(nameList) {
         var choSungList = extractChoSungList(item.name);
         var selectedBestGoodFilter = $('#bestGoodFilterSelect option:selected').val();
 
-        var filterResult = '';
-        if (selectedBestGoodFilter === 'best') {
-            filterResult = ohangBestFilter(choSungList);
-        } else if (selectedBestGoodFilter === 'good') {
-            filterResult = ohangGoodFilter(choSungList);
-        } else {
-            filterResult = ohangBestFilter(choSungList) || ohangGoodFilter(choSungList);
+        var ohangRelationResult = getOhangRelationResult(choSungList);
+        if (ohangRelationResult !== 'BEST' && ohangRelationResult !== 'GOOD') {
+            return false;
         }
-
-        if (!filterResult) {
+        if (selectedBestGoodFilter !== 'ALL' && selectedBestGoodFilter !== ohangRelationResult) {
             return false;
         }
 
@@ -151,8 +156,8 @@ function filter(nameList) {
         if (!umYangFilter(jungSungList)) {
             return false;
         }
-        item.choSung = choSungList;
-        item.ohang = filterResult;
+        item.ohang = '[발음 오행] ' + ohangRelationResult + ' : ' + [O_HANG_MATCH['ㄱ'], O_HANG_MATCH[choSungList[0]], O_HANG_MATCH[choSungList[1]]].join('-');
+        item.umYang = '[발음 음양] BEST';
         return true;
     });
 }
